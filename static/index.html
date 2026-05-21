@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>povo Manager</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #e91e8c, #9c27b0);
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header h1 { font-size: 1.2rem; font-weight: 700; }
+    header span { font-size: 0.8rem; opacity: 0.85; }
+
+    .add-section {
+      background: white;
+      margin: 16px;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .add-section h2 {
+      font-size: 0.85rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 12px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: monospace;
+      transition: border-color 0.2s;
+      background: #fafafa;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #e91e8c;
+      background: white;
+    }
+
+    input.desc-input {
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+
+    .btn {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn:active { transform: scale(0.96); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #e91e8c, #9c27b0);
+      color: white;
+    }
+
+    .btn-copy {
+      background: #e3f2fd;
+      color: #1565c0;
+      font-size: 0.85rem;
+      padding: 10px 14px;
+    }
+
+    .btn-povo {
+      background: linear-gradient(135deg, #e91e8c, #9c27b0);
+      color: white;
+      font-size: 0.85rem;
+      padding: 10px 14px;
+    }
+
+    .btn-history {
+      background: #f3e5f5;
+      color: #6a1b9a;
+      font-size: 0.85rem;
+      padding: 10px 14px;
+    }
+
+    .btn-danger {
+      background: #ffebee;
+      color: #c62828;
+      font-size: 0.8rem;
+      padding: 8px 12px;
+    }
+
+    .btn-toggle-off {
+      background: #fff3e0;
+      color: #e65100;
+      font-size: 0.8rem;
+      padding: 8px 12px;
+    }
+
+    .codes-section {
+      padding: 0 16px 16px;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
+    .code-card {
+      background: white;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      transition: box-shadow 0.2s;
+    }
+
+    .code-card.inactive {
+      opacity: 0.5;
+    }
+
+    .code-card:active { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+
+    .code-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .code-text {
+      font-family: monospace;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #1a1a2e;
+      word-break: break-all;
+    }
+
+    .code-desc {
+      font-size: 0.8rem;
+      color: #999;
+      margin-bottom: 8px;
+    }
+
+    .code-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 0.78rem;
+      color: #bbb;
+      margin-bottom: 10px;
+    }
+
+    .code-meta .uses {
+      color: #e91e8c;
+      font-weight: 600;
+    }
+
+    .code-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #323232;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 24px;
+      font-size: 0.9rem;
+      z-index: 1000;
+      transition: transform 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* モーダル */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      align-items: flex-end;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: white;
+      width: 100%;
+      border-radius: 20px 20px 0 0;
+      padding: 20px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .modal-code {
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #e91e8c;
+      margin-bottom: 16px;
+    }
+
+    .history-item {
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history-item:last-child { border-bottom: none; }
+
+    .history-num {
+      font-weight: 700;
+      color: #e91e8c;
+      margin-right: 10px;
+      min-width: 28px;
+    }
+
+    .history-date { font-size: 0.88rem; color: #555; }
+    .history-note { font-size: 0.8rem; color: #aaa; }
+
+    .empty {
+      text-align: center;
+      color: #ccc;
+      padding: 40px 20px;
+      font-size: 0.95rem;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .filter-btn {
+      padding: 6px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 20px;
+      background: white;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn.active {
+      border-color: #e91e8c;
+      color: #e91e8c;
+      background: #fce4ec;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📱 povo Manager</h1>
+  <span id="total-count"></span>
+</header>
+
+<!-- コード追加 -->
+<div class="add-section">
+  <h2>コードを追加</h2>
+  <div class="input-row">
+    <input type="text" id="code-input" placeholder="プロモコード" autocomplete="off" autocapitalize="none">
+  </div>
+  <div class="input-row">
+    <input type="text" id="desc-input" class="desc-input" placeholder="メモ（例: 24時間使い放題 ×3）">
+    <button class="btn btn-primary" onclick="addCode()">追加</button>
+  </div>
+</div>
+
+<!-- コード一覧 -->
+<div class="codes-section">
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="setFilter('all', this)">すべて</button>
+    <button class="filter-btn" onclick="setFilter('active', this)">有効</button>
+    <button class="filter-btn" onclick="setFilter('inactive', this)">無効</button>
+  </div>
+  <div id="codes-list"></div>
+</div>
+
+<!-- 履歴モーダル -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-code" id="modal-code"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<script>
+const POVO_PACKAGE = "au.com.povo2";
+let allCodes = [];
+let currentFilter = "all";
+
+// ── データ取得 ─────────────────────────────────────────────────
+
+async function loadCodes() {
+  const res = await fetch("/api/codes");
+  allCodes = await res.json();
+  renderCodes();
+  document.getElementById("total-count").textContent =
+    `${allCodes.length} 件`;
+}
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderCodes();
+}
+
+function renderCodes() {
+  const list = document.getElementById("codes-list");
+  let codes = allCodes;
+  if (currentFilter === "active")   codes = allCodes.filter(c => c.is_active);
+  if (currentFilter === "inactive") codes = allCodes.filter(c => !c.is_active);
+
+  if (codes.length === 0) {
+    list.innerHTML = `<div class="empty">コードがありません</div>`;
+    return;
+  }
+
+  list.innerHTML = codes.map(c => {
+    const lastUsed = c.last_used
+      ? `最終: ${formatDate(c.last_used)}`
+      : "未使用";
+    return `
+    <div class="code-card ${c.is_active ? "" : "inactive"}" id="card-${c.id}">
+      <div class="code-top">
+        <span class="code-text">${c.code}</span>
+      </div>
+      ${c.description ? `<div class="code-desc">${c.description}</div>` : ""}
+      <div class="code-meta">
+        <span class="uses">📊 ${c.total_uses}回使用</span>
+        <span>${lastUsed}</span>
+      </div>
+      <div class="code-actions">
+        <button class="btn btn-copy" onclick="copyAndUse(${c.id}, '${c.code}')">📋 コピー</button>
+        <button class="btn btn-povo" onclick="copyAndOpenPovo(${c.id}, '${c.code}')">🚀 コピー&povo起動</button>
+        <button class="btn btn-history" onclick="showHistory(${c.id})">📜 履歴</button>
+        <button class="btn btn-toggle-off" onclick="toggleActive(${c.id})">${c.is_active ? "無効化" : "有効化"}</button>
+        <button class="btn btn-danger" onclick="deleteCode(${c.id})">🗑️</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── コード追加 ─────────────────────────────────────────────────
+
+async function addCode() {
+  const code = document.getElementById("code-input").value.trim();
+  const desc = document.getElementById("desc-input").value.trim();
+  if (!code) { showToast("コードを入力してください"); return; }
+
+  const res = await fetch("/api/codes", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ code, description: desc })
+  });
+
+  if (res.status === 409) {
+    showToast("⚠️ このコードはすでに登録済みです");
+    return;
+  }
+  if (!res.ok) { showToast("エラーが発生しました"); return; }
+
+  document.getElementById("code-input").value = "";
+  document.getElementById("desc-input").value = "";
+  showToast("✅ コードを追加しました");
+  loadCodes();
+}
+
+// ── コピー & 利用記録 ──────────────────────────────────────────
+
+async function copyAndUse(id, code) {
+  await copyToClipboard(code);
+  await recordUse(id);
+  showToast(`📋 コピーしました（${await getUseCount(id)}回目）`);
+  loadCodes();
+}
+
+async function copyAndOpenPovo(id, code) {
+  await copyToClipboard(code);
+  await recordUse(id);
+  const count = await getUseCount(id);
+  showToast(`📋 コピー済み・povoを起動します（${count}回目）`);
+  loadCodes();
+
+  // povo アプリを起動（Androidインテント）
+  setTimeout(() => {
+    const intentUrl = `intent:#Intent;package=${POVO_PACKAGE};end`;
+    window.location.href = intentUrl;
+  }, 600);
+}
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    // フォールバック
+    const el = document.createElement("textarea");
+    el.value = text;
+    el.style.position = "fixed";
+    el.style.opacity = "0";
+    document.body.appendChild(el);
+    el.focus();
+    el.select();
+    document.execCommand("copy");
+    document.body.removeChild(el);
+  }
+}
+
+async function recordUse(id) {
+  await fetch(`/api/codes/${id}/use`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ note: "" })
+  });
+}
+
+async function getUseCount(id) {
+  const res = await fetch(`/api/codes/${id}/history`);
+  const data = await res.json();
+  return data.history.length;
+}
+
+// ── 削除・切替 ─────────────────────────────────────────────────
+
+async function deleteCode(id) {
+  if (!confirm("このコードを削除しますか？\n（利用履歴もすべて削除されます）")) return;
+  await fetch(`/api/codes/${id}`, { method: "DELETE" });
+  showToast("🗑️ 削除しました");
+  loadCodes();
+}
+
+async function toggleActive(id) {
+  const res = await fetch(`/api/codes/${id}/toggle`, { method: "PATCH" });
+  const data = await res.json();
+  showToast(data.is_active ? "✅ 有効化しました" : "⏸️ 無効化しました");
+  loadCodes();
+}
+
+// ── 履歴モーダル ───────────────────────────────────────────────
+
+async function showHistory(id) {
+  const res = await fetch(`/api/codes/${id}/history`);
+  const data = await res.json();
+
+  document.getElementById("modal-title").textContent =
+    data.description || "利用履歴";
+  document.getElementById("modal-code").textContent = data.code;
+
+  if (data.history.length === 0) {
+    document.getElementById("modal-body").innerHTML =
+      `<div class="empty">まだ使用されていません</div>`;
+  } else {
+    document.getElementById("modal-body").innerHTML = data.history.map((h, i) => `
+      <div class="history-item">
+        <div>
+          <span class="history-num">#${data.history.length - i}</span>
+          <span class="history-date">${formatDate(h.used_at)}</span>
+        </div>
+        ${h.note ? `<div class="history-note">${h.note}</div>` : ""}
+      </div>
+    `).join("");
+  }
+
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById("modal-overlay")) {
+    document.getElementById("modal-overlay").classList.remove("open");
+  }
+}
+
+// ── ユーティリティ ─────────────────────────────────────────────
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ` +
+         `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2500);
+}
+
+// Enterキーで追加
+document.getElementById("code-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("desc-input").focus();
+});
+document.getElementById("desc-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") addCode();
+});
+
+// 初期ロード
+loadCodes();
+</script>
+</body>
+</html>
