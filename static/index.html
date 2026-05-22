@@ -537,17 +537,19 @@ async function showHistory(id) {
     data.description || "利用履歴";
   document.getElementById("modal-code").textContent = data.code;
 
+  const codeId = id;
   if (data.history.length === 0) {
     document.getElementById("modal-body").innerHTML =
       `<div class="empty">まだ使用されていません</div>`;
   } else {
     document.getElementById("modal-body").innerHTML = data.history.map((h, i) => `
-      <div class="history-item">
+      <div class="history-item" id="hist-${h.id}">
         <div>
           <span class="history-num">#${data.history.length - i}</span>
           <span class="history-date">${formatDate(h.used_at)}</span>
+          ${h.note ? `<div class="history-note">${h.note}</div>` : ""}
         </div>
-        ${h.note ? `<div class="history-note">${h.note}</div>` : ""}
+        <button class="btn btn-danger" style="padding:6px 10px; font-size:0.75rem;" onclick="deleteHistory(${h.id}, ${codeId})">削除</button>
       </div>
     `).join("");
   }
@@ -562,6 +564,18 @@ function closeModal(e) {
   if (e.target === document.getElementById("confirm-overlay")) {
     document.getElementById("confirm-overlay").classList.remove("open");
   }
+}
+
+async function deleteHistory(historyId, codeId) {
+  if (!confirm("この履歴を削除しますか？")) return;
+  await fetch(`/api/history/${historyId}`, { method: "DELETE" });
+  document.getElementById(`hist-${historyId}`)?.remove();
+  // 番号を振り直す
+  document.querySelectorAll(".history-num").forEach((el, i, arr) => {
+    el.textContent = `#${arr.length - i}`;
+  });
+  showToast("🗑️ 履歴を削除しました");
+  loadCodes();
 }
 
 // ── ユーティリティ ─────────────────────────────────────────────

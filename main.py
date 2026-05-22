@@ -122,6 +122,16 @@ def get_history(code_id: int, db: Session = Depends(get_db)):
     }
 
 
+@app.delete("/api/history/{history_id}")
+def delete_history(history_id: int, db: Session = Depends(get_db)):
+    history = db.query(UsageHistory).filter(UsageHistory.id == history_id).first()
+    if not history:
+        raise HTTPException(status_code=404, detail="履歴が見つかりません")
+    db.delete(history)
+    db.commit()
+    return {"status": "deleted"}
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
