@@ -325,6 +325,19 @@
   <div id="codes-list"></div>
 </div>
 
+<!-- 適用確認モーダル -->
+<div class="modal-overlay" id="confirm-overlay" onclick="closeModal(event)">
+  <div class="modal" style="text-align:center; padding: 28px 24px;">
+    <div style="font-size:2rem; margin-bottom:12px;">✅</div>
+    <div style="font-size:1.1rem; font-weight:700; margin-bottom:8px;">povoに適用できましたか？</div>
+    <div style="font-size:0.85rem; color:#999; margin-bottom:24px;">「はい」を押すと利用回数が記録されます</div>
+    <div style="display:flex; gap:12px; justify-content:center;">
+      <button class="btn" style="background:#f0f0f0; color:#555; flex:1; padding:14px;" onclick="confirmUse(false)">いいえ</button>
+      <button class="btn btn-primary" style="flex:1; padding:14px;" onclick="confirmUse(true)">はい</button>
+    </div>
+  </div>
+</div>
+
 <!-- 履歴モーダル -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
   <div class="modal" id="modal">
@@ -431,15 +444,40 @@ async function copyAndUse(id, code) {
 
 async function copyAndOpenPovo(id, code) {
   await copyToClipboard(code);
-  await recordUse(id);
-  const count = await getUseCount(id);
-  showToast(`📋 コピー済み・povoを起動します（${count}回目）`);
-  loadCodes();
+  showToast(`📋 コピーしました・povoを起動します`);
 
   // povo アプリを起動（Android intent URL）
   setTimeout(() => {
-    window.location.href = `intent://#Intent;package=${POVO_PACKAGE};action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end`;
-  }, 600);
+    window.open(
+      `intent://#Intent;package=${POVO_PACKAGE};action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end`,
+      '_blank'
+    );
+  }, 400);
+
+  // povo アプリから戻ってきたら確認ダイアログを表示
+  setTimeout(() => {
+    showConfirm(id);
+  }, 1200);
+}
+
+function showConfirm(id) {
+  document.getElementById("confirm-overlay").classList.add("open");
+  document.getElementById("confirm-overlay").dataset.codeId = id;
+}
+
+async function confirmUse(success) {
+  const overlay = document.getElementById("confirm-overlay");
+  const id = overlay.dataset.codeId;
+  overlay.classList.remove("open");
+
+  if (success) {
+    await recordUse(id);
+    const count = await getUseCount(id);
+    showToast(`✅ ${count}回目の利用を記録しました`);
+    loadCodes();
+  } else {
+    showToast("キャンセルしました");
+  }
 }
 
 async function copyToClipboard(text) {
@@ -520,6 +558,9 @@ async function showHistory(id) {
 function closeModal(e) {
   if (e.target === document.getElementById("modal-overlay")) {
     document.getElementById("modal-overlay").classList.remove("open");
+  }
+  if (e.target === document.getElementById("confirm-overlay")) {
+    document.getElementById("confirm-overlay").classList.remove("open");
   }
 }
 
