@@ -338,7 +338,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const POVO_PACKAGE = "au.com.povo2"; // povo2.0のパッケージ名
+const POVO_PACKAGE = "com.kddi.kdla.jp"; // povo2.0のパッケージ名
 let allCodes = [];
 let currentFilter = "all";
 
@@ -436,14 +436,9 @@ async function copyAndOpenPovo(id, code) {
   showToast(`📋 コピー済み・povoを起動します（${count}回目）`);
   loadCodes();
 
-  // povo アプリを起動（複数の方法を試みる）
+  // povo アプリを起動（Android intent URL）
   setTimeout(() => {
-    // まず market:// で起動を試みる（インストール済みならアプリが開く）
-    window.location.href = `market://launch?id=${POVO_PACKAGE}`;
-    // 失敗した場合のフォールバック（1秒後にPlay Storeを開く）
-    setTimeout(() => {
-      window.open(`https://play.google.com/store/apps/details?id=${POVO_PACKAGE}`, '_blank');
-    }, 1000);
+    window.location.href = `intent://#Intent;package=${POVO_PACKAGE};action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end`;
   }, 600);
 }
 
