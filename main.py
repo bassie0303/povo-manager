@@ -122,6 +122,16 @@ def get_history(code_id: int, db: Session = Depends(get_db)):
     }
 
 
+@app.patch("/api/history/{history_id}")
+def update_history(history_id: int, body: UseRecord, db: Session = Depends(get_db)):
+    history = db.query(UsageHistory).filter(UsageHistory.id == history_id).first()
+    if not history:
+        raise HTTPException(status_code=404, detail="履歴が見つかりません")
+    history.note = body.note
+    db.commit()
+    return {"status": "updated"}
+
+
 @app.delete("/api/history/{history_id}")
 def delete_history(history_id: int, db: Session = Depends(get_db)):
     history = db.query(UsageHistory).filter(UsageHistory.id == history_id).first()

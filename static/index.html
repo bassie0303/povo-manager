@@ -544,12 +544,25 @@ async function showHistory(id) {
   } else {
     document.getElementById("modal-body").innerHTML = data.history.map((h, i) => `
       <div class="history-item" id="hist-${h.id}">
-        <div>
-          <span class="history-num">#${data.history.length - i}</span>
-          <span class="history-date">${formatDate(h.used_at)}</span>
-          ${h.note ? `<div class="history-note">${h.note}</div>` : ""}
+        <div style="flex:1;">
+          <div>
+            <span class="history-num">#${data.history.length - i}</span>
+            <span class="history-date">${formatDate(h.used_at)}</span>
+          </div>
+          <div id="note-view-${h.id}" style="margin-top:4px;">
+            <span class="history-note" id="note-text-${h.id}">${h.note || '<span style="color:#ccc">メモなし</span>'}</span>
+            <button onclick="editNote(${h.id}, '${(h.note||'').replace(/'/g,"\\\'")}')" style="border:none;background:none;color:#9c27b0;font-size:0.78rem;cursor:pointer;margin-left:6px;">✏️</button>
+          </div>
+          <div id="note-edit-${h.id}" style="display:none;margin-top:6px;">
+            <input type="text" id="note-input-${h.id}" style="width:100%;padding:8px;border:1.5px solid #e91e8c;border-radius:8px;font-size:0.9rem;"
+              placeholder="メモを入力" onkeydown="if(event.key==='Enter')saveNote(${h.id},${codeId})">
+            <div style="display:flex;gap:8px;margin-top:6px;">
+              <button class="btn" style="background:#f0f0f0;color:#555;flex:1;padding:8px;" onclick="cancelNote(${h.id})">キャンセル</button>
+              <button class="btn btn-primary" style="flex:1;padding:8px;" onclick="saveNote(${h.id},${codeId})">保存</button>
+            </div>
+          </div>
         </div>
-        <button class="btn btn-danger" style="padding:6px 10px; font-size:0.75rem;" onclick="deleteHistory(${h.id}, ${codeId})">削除</button>
+        <button class="btn btn-danger" style="padding:6px 10px;font-size:0.75rem;align-self:flex-start;" onclick="deleteHistory(${h.id}, ${codeId})">削除</button>
       </div>
     `).join("");
   }
@@ -564,6 +577,32 @@ function closeModal(e) {
   if (e.target === document.getElementById("confirm-overlay")) {
     document.getElementById("confirm-overlay").classList.remove("open");
   }
+}
+
+function editNote(historyId, currentNote) {
+  document.getElementById(`note-view-${historyId}`).style.display = "none";
+  document.getElementById(`note-edit-${historyId}`).style.display = "block";
+  const input = document.getElementById(`note-input-${historyId}`);
+  input.value = currentNote;
+  input.focus();
+}
+
+function cancelNote(historyId) {
+  document.getElementById(`note-view-${historyId}`).style.display = "block";
+  document.getElementById(`note-edit-${historyId}`).style.display = "none";
+}
+
+async function saveNote(historyId, codeId) {
+  const note = document.getElementById(`note-input-${historyId}`).value.trim();
+  await fetch(`/api/history/${historyId}`, {
+    method: "PATCH",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ note })
+  });
+  document.getElementById(`note-text-${historyId}`).innerHTML =
+    note || '<span style="color:#ccc">メモなし</span>';
+  cancelNote(historyId);
+  showToast("✅ メモを保存しました");
 }
 
 async function deleteHistory(historyId, codeId) {
