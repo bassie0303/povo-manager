@@ -3,3 +3,4 @@ uvicorn
 sqlalchemy
 python-dotenv
 psycopg2-binary
+sentry-sdk[fastapi]>=2.0.0
