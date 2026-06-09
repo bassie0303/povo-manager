@@ -1,6 +1,10 @@
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
-from datetime import datetime
+from datetime import datetime, timezone
+
+def now_utc():
+    """タイムゾーン情報付きのUTC現在時刻を返す（ブラウザがJSTに自動変換）"""
+    return datetime.now(timezone.utc)
 
 import os
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./povo_manager.db")
@@ -21,7 +25,7 @@ class PromoCode(Base):
     code        = Column(String, unique=True, nullable=False)
     description = Column(String, default="")
     is_active   = Column(Boolean, default=True)
-    created_at  = Column(DateTime, default=datetime.now)
+    created_at  = Column(DateTime(timezone=True), default=now_utc)
 
     history = relationship("UsageHistory", back_populates="promo_code", cascade="all, delete-orphan")
 
@@ -35,7 +39,7 @@ class UsageHistory(Base):
 
     id         = Column(Integer, primary_key=True, index=True)
     code_id    = Column(Integer, ForeignKey("promo_codes.id"), nullable=False)
-    used_at    = Column(DateTime, default=datetime.now)
+    used_at    = Column(DateTime(timezone=True), default=now_utc)
     note       = Column(String, default="")
 
     promo_code = relationship("PromoCode", back_populates="history")
