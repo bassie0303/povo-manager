@@ -46,6 +46,10 @@ class UseRecord(BaseModel):
 
 # ── ルート ────────────────────────────────────────────────────────
 
+@app.get("/favicon.svg")
+def favicon():
+    return FileResponse("static/favicon.svg", media_type="image/svg+xml")
+
 @app.get("/", response_class=HTMLResponse)
 def index():
     return FileResponse("static/index.html")
