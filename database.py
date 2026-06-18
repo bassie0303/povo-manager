@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey, text
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from datetime import datetime, timezone
 
@@ -45,8 +45,53 @@ class UsageHistory(Base):
     promo_code = relationship("PromoCode", back_populates="history")
 
 
+# タイムゾーン列の対象（テーブル名, 列名）
+_TZ_COLUMNS = [
+    ("promo_codes", "created_at"),
+    ("usage_history", "used_at"),
+]
+
+
+def _ensure_timestamptz():
+    """PostgreSQL で DateTime 列を timestamptz に揃える冪等なワンショット処理。
+
+    マイグレーションツールが無いため、過去に `timestamp without time zone`
+    （tz 無し）で作られた列が残ると、UTC の値が tz 情報なしで返り、ブラウザが
+    ローカル時刻と誤読して 9 時間ずれる。起動のたびに型を確認し、未変換なら
+    既存値を UTC として解釈して `timestamptz` に変換する。
+
+    - PostgreSQL 以外（SQLite 等）は何もしない。
+    - 既に timestamptz なら何もしない（毎起動で安全に再実行可能）。
+    - 失敗してもアプリ起動は止めない。
+    """
+    if engine.dialect.name != "postgresql":
+        return
+    try:
+        with engine.begin() as conn:
+            for table, col in _TZ_COLUMNS:
+                dtype = conn.execute(
+                    text(
+                        "SELECT data_type FROM information_schema.columns "
+                        "WHERE table_name = :t AND column_name = :c"
+                    ),
+                    {"t": table, "c": col},
+                ).scalar()
+                if dtype == "timestamp without time zone":
+                    conn.execute(
+                        text(
+                            f'ALTER TABLE {table} '
+                            f'ALTER COLUMN {col} TYPE timestamptz '
+                            f'USING {col} AT TIME ZONE \'UTC\''
+                        )
+                    )
+    except Exception as e:
+        # 起動を妨げない（次回起動で再試行される）
+        print(f"[init_db] timestamptz 移行をスキップ: {e}")
+
+
 def init_db():
     Base.metadata.create_all(bind=engine)
+    _ensure_timestamptz()
 
 
 def get_db():
