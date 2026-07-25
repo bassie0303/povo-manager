@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>povo Manager</title>
+<link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/favicon.svg">
   <style>
@@ -194,6 +195,19 @@
       color: #333;
       font-weight: 600;
     }
+
+    .pace {
+      font-size: 0.78rem;
+      color: #666;
+      margin-bottom: 10px;
+      line-height: 1.5;
+      background: #f7f7f9;
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .pace b { color: #1a1a2e; }
+    .pace .ok { color: #2e7d32; font-weight: 700; }
+    .pace .warn { color: #c62828; font-weight: 700; }
 
     .code-actions {
       display: flex;
@@ -403,6 +417,7 @@ function renderCodes() {
         <span class="uses">📊 ${c.total_uses}回使用</span>
         <span>${lastUsed}</span>
       </div>
+      ${renderPace(c)}
       <div class="code-actions">
         <button class="btn btn-copy" onclick="copyAndUse(${c.id}, '${c.code}')">📋 コピー</button>
         <button class="btn btn-povo" onclick="copyAndOpenPovo(${c.id}, '${c.code}')">🚀 コピー&povo起動</button>
@@ -629,6 +644,58 @@ function formatDate(iso) {
   const d = new Date(iso);
   return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ` +
          `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+}
+
+// ── 利用ペース計算 ─────────────────────────────────────────────
+// メモから「総回数・1回の日数・入力締切」を解析する。
+//   回数   : 「24回」「×3」
+//   日数/回: 「7日間」→7、「24時間」→1（無ければ7と仮定）
+//   締切   : 「締切7/31」「〆2026/8/15」「期限 7月31日」「7/31まで」（購入日など無関係な日付は無視）
+function parsePlan(memo, totalUses) {
+  memo = memo || "";
+  let count = null;
+  const m = memo.match(/[×✕xX]\s*(\d+)/) || memo.match(/(\d+)\s*回/);
+  if (m) count = parseInt(m[1], 10);
+
+  let days;
+  const d = memo.match(/(\d+)\s*日間/);
+  if (d) days = parseInt(d[1], 10);
+  else { const h = memo.match(/(\d+)\s*時間/); days = h ? Math.max(1, Math.round(parseInt(h[1],10)/24)) : 7; }
+
+  let deadline = null;
+  const dl = memo.match(/(?:締切|締め切り|〆|入力期限|期限|締め)\s*[:：]?\s*(?:(\d{4})[\/／年])?(\d{1,2})[\/／月](\d{1,2})/)
+          || memo.match(/(?:(\d{4})[\/／年])?(\d{1,2})[\/／月](\d{1,2})\s*日?\s*まで/);
+  if (dl) {
+    const now = new Date();
+    const year = dl[1] ? parseInt(dl[1],10) : now.getFullYear();
+    const mo = parseInt(dl[2],10)-1, day = parseInt(dl[3],10);
+    deadline = new Date(year, mo, day, 23, 59, 59);
+    if (!dl[1] && deadline < now) deadline = new Date(year+1, mo, day, 23, 59, 59);
+  }
+
+  const remaining = count != null ? Math.max(0, count - totalUses) : null;
+  return { count, days, deadline, remaining };
+}
+
+function renderPace(c) {
+  const p = parsePlan(c.description, c.total_uses);
+  if (p.count == null) return "";  // 回数が読めないメモは表示しない
+  const usable = p.remaining * p.days;
+  let html = `<div class="pace">🎫 残り <b>${p.remaining}回</b> × ${p.days}日 = <b>${usable}日分</b>`;
+  if (p.deadline) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const dday = Math.ceil((p.deadline - today) / 86400000);
+    if (dday < 0) {
+      html += `<br>⏳ <span class="warn">締切超過</span>`;
+    } else {
+      const slack = dday - usable;
+      const cls = slack >= 0 ? "ok" : "warn";
+      const txt = slack >= 0 ? `余裕 ${slack}日` : `不足 ${-slack}日`;
+      html += `<br>⏳ 締切まで <b>${dday}日</b> → <span class="${cls}">${txt}</span>`;
+    }
+  }
+  html += `</div>`;
+  return html;
 }
 
 let toastTimer;
